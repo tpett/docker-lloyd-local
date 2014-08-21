@@ -2,6 +2,7 @@
 
 : ${BACKUP_DIR="/backups"}
 : ${TIMEOUT=86400} # 24 hours
+: ${BACKUP_KEEP_DAYS=14}
 
 [ -d "$BACKUP_DIR" ] || mkdir -p "$BACKUP_DIR"
 
@@ -14,10 +15,12 @@ backup() {
   echo "[=] $1"
   while true
   do
+    timestamp=`date +"%Y%m%d-%H%M%S"`
     echo "$1: Backup"
-    /docker-backup/docker-backup $OPTS -addr /docker.sock store "$BACKUP_DIR/$1.tar" "$1" | push_metrics
-    gzip "$BACKUP_DIR/$1.tar"
+    /docker-backup/docker-backup $OPTS -addr /docker.sock store "$BACKUP_DIR/$1-$timestamp.tar" "$1" | push_metrics
+    gzip "$BACKUP_DIR/$1-$timestamp.tar"
 
+    find $BACKUP_DIR/$1-*.tar.gz -mtime +$BACKUP_KEEP_DAYS -exec rm {} \;
     date +"last_run{container=\"$1\"} %s" | push_metrics
     echo "$1: Sleep"
     sleep $TIMEOUT

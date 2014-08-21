@@ -7,16 +7,22 @@ and stores them in a local directory.
 
 To use it, run:
 
-    $ docker run -v /var/run/docker.sock:/docker.sock \
+    $ docker run \
+             -v /var/run/docker.sock:/docker.sock \
              -v /var/lib/docker/vfs/dir:/var/lib/docker/vfs/dir \
-             tpett/docker-lloyd
+             -v /host-backup-location:/backups
+             tpett/docker-lloyd-local \
              container-a container-b container-c...
 
 This will run [docker-backup](https://github.com/discordianfish/docker-backup),
 gzip a tarball named after the container and put it in `BACKUP_DIR`
-(default "/backup").
+(default "/backup"). By default, the files will be stored for 2 weeks.
+You can override this by setting the environment variable
+`BACKUP_KEEP_DAYS`.
 
-See the original project [docker-lloyd](https://github.com/discordianfish/docker-lloyd) if you would like to upload your files to S3.
+See the original project
+[docker-lloyd](https://github.com/discordianfish/docker-lloyd) if you
+would like to upload your files to S3.
 
 See [docker-backup](https://github.com/discordianfish/docker-backup) on
 how to restore a backup.
