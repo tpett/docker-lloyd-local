@@ -1,25 +1,9 @@
-#!/bin/sh -e
+#!/bin/bash
 
-TIMEOUT=86400 # 24 hours
-BACKUPS=/backups
+: ${BACKUP_DIR="/backups"}
+: ${TIMEOUT=86400} # 24 hours
 
-BUCKET=$1
-if [ -z "$BUCKET" ]
-then
-  echo "$0 bucket container [container...]"
-  echo "(If set, docker-backup output will be POSTed to \$PUSHGATEWAY)"
-  exit 1
-fi
-shift
-
-if [ -z "$ACCESS_KEY" -o -z "$SECRET_KEY" ]
-then
-  echo "Please set ACCESS_KEY and SECRET_KEY environment variables"
-  exit 1
-fi
-
-
-[ -d "$BACKUPS" ] || mkdir "$BACKUPS"
+[ -d "$BACKUP_DIR" ] || mkdir -p "$BACKUP_DIR"
 
 push_metrics() {
   [ -z "$PUSHGATEWAY" ] && return
@@ -31,13 +15,8 @@ backup() {
   while true
   do
     echo "$1: Backup"
-    /docker-backup/docker-backup $OPTS -addr /docker.sock store "$BACKUPS/$1.tar" "$1" | push_metrics
-    gzip "$BACKUPS/$1.tar"
-
-    echo "$1: Upload"
-    s3cmd --access_key="$ACCESS_KEY" --secret_key="$SECRET_KEY" \
-          -c /dev/null $S3CMD_OPTS put "$BACKUPS/$1.tar.gz" $BUCKET
-    rm "$BACKUPS/$1.tar.gz"
+    /docker-backup/docker-backup $OPTS -addr /docker.sock store "$BACKUP_DIR/$1.tar" "$1" | push_metrics
+    gzip "$BACKUP_DIR/$1.tar"
 
     date +"last_run{container=\"$1\"} %s" | push_metrics
     echo "$1: Sleep"
@@ -45,9 +24,9 @@ backup() {
   done
 }
 
-for c in $@
+for container in $@
 do
-  backup $c &
+  backup $container &
 done
 
 wait
